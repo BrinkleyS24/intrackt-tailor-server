@@ -17,7 +17,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const mockMode = false; // Set to false to enable OpenAI API calls
+const mockMode = true; // Set to false to enable OpenAI API calls
 
 app.post('/tailor', async (req, res) => {
   const { resume, jobDescription } = req.body;
