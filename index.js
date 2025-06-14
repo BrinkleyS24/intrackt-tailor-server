@@ -17,7 +17,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const mockMode = false; 
+const mockMode = true; 
 
 app.post('/tailor', async (req, res) => {
   // Destructure isPremium from the request body
