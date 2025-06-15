@@ -107,8 +107,10 @@ app.post('/generate-pdf', async (req, res) => {
     });
 
     await browser.close();
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=tailored_resume.pdf');
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename=tailored_resume.pdf',
+    });
     res.send(pdf);
   } catch (err) {
     console.error('PDF generation error:', err);

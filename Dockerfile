@@ -1,43 +1,44 @@
-# Use a base image with Node + build tools
-FROM node:18-slim
+# Use a base image with Debian + Node.js
+FROM node:18-bullseye-slim
 
-# Install Chromium dependencies
+# Install Chromium and its dependencies
 RUN apt-get update && apt-get install -y \
-  wget \
-  gnupg \
-  ca-certificates \
-  fonts-liberation \
-  libappindicator3-1 \
-  libasound2 \
-  libatk-bridge2.0-0 \
-  libatk1.0-0 \
-  libcups2 \
-  libdbus-1-3 \
-  libgdk-pixbuf2.0-0 \
-  libnspr4 \
-  libnss3 \
-  libx11-xcb1 \
-  libxcomposite1 \
-  libxdamage1 \
-  libxrandr2 \
-  xdg-utils \
-  libu2f-udev \
-  chromium \
-  --no-install-recommends && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/*
+    wget \
+    gnupg \
+    ca-certificates \
+    fonts-liberation \
+    libappindicator3-1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libgdk-pixbuf2.0-0 \
+    libnspr4 \
+    libnss3 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils \
+    libu2f-udev \
+    chromium \
+    --no-install-recommends && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Set the Chromium executable path
+# Set Puppeteer to use system-installed Chromium
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-# Set working directory
+# Create app directory
 WORKDIR /app
 
-# Copy your files
+# Copy project files and install dependencies
 COPY . .
-
-# Install dependencies
 RUN npm install
+
+# Expose the port your app runs on
+EXPOSE 10000
 
 # Start the server
 CMD ["npm", "start"]
