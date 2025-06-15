@@ -17,7 +17,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const mockMode = false; 
+const mockMode = true; 
 
 app.post('/tailor', async (req, res) => {
   // Destructure isPremium from the request body
@@ -79,6 +79,32 @@ app.post('/tailor', async (req, res) => {
     } else {
         res.status(500).json({ error: error.message || "Failed to tailor resume with OpenAI." });
     }
+  }
+});
+
+app.post('/generate-pdf', async (req, res) => {
+  const { html } = req.body;
+  if (!html) return res.status(400).json({ error: "Missing HTML content." });
+
+  try {
+    const puppeteer = await import('puppeteer');
+    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' }
+    });
+
+    await browser.close();
+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename=tailored_resume.pdf' });
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error('PDF generation error:', err);
+    res.status(500).json({ error: 'Failed to generate PDF.' });
   }
 });
 
