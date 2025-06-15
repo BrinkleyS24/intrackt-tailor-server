@@ -2,6 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { OpenAI } from 'openai';
+import puppeteer from 'puppeteer';
+
+process.env.PUPPETEER_CACHE_DIR = './.cache/puppeteer';
+
 
 dotenv.config();
 
@@ -17,7 +21,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const mockMode = true; 
+const mockMode = true;
 
 app.post('/tailor', async (req, res) => {
   // Destructure isPremium from the request body
@@ -60,8 +64,8 @@ app.post('/tailor', async (req, res) => {
           content: `Here is my original resume:\n${resume}\n\nHere is the job description:\n${jobDescription}\n\nProvide the tailored resume in Markdown, strictly following all the guidelines.`,
         },
       ],
-      temperature: 0.5, 
-      max_tokens: 1500, 
+      temperature: 0.5,
+      max_tokens: 1500,
     });
 
     const tailored = response.choices?.[0]?.message?.content;
@@ -72,12 +76,12 @@ app.post('/tailor', async (req, res) => {
 
     res.json({ tailoredResume: tailored });
   } catch (error) {
-    console.error("Error tailoring resume with OpenAI:", error); 
+    console.error("Error tailoring resume with OpenAI:", error);
     // Provide a more user-friendly error message if it's an OpenAI specific error
     if (error.response && error.response.data && error.response.data.error) {
-        res.status(error.response.status || 500).json({ error: `OpenAI API Error: ${error.response.data.error.message}` });
+      res.status(error.response.status || 500).json({ error: `OpenAI API Error: ${error.response.data.error.message}` });
     } else {
-        res.status(500).json({ error: error.message || "Failed to tailor resume with OpenAI." });
+      res.status(500).json({ error: error.message || "Failed to tailor resume with OpenAI." });
     }
   }
 });
@@ -87,21 +91,24 @@ app.post('/generate-pdf', async (req, res) => {
   if (!html) return res.status(400).json({ error: "Missing HTML content." });
 
   try {
-    const puppeteer = await import('puppeteer');
-    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    const page = await browser.newPage();
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true,
+    });
 
+    const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
 
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
+    const pdf = await page.pdf({
+      format: 'letter',
       printBackground: true,
       margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' }
     });
 
     await browser.close();
-    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename=tailored_resume.pdf' });
-    res.send(pdfBuffer);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=tailored_resume.pdf');
+    res.send(pdf);
   } catch (err) {
     console.error('PDF generation error:', err);
     res.status(500).json({ error: 'Failed to generate PDF.' });
