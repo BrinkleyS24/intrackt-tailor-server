@@ -17,7 +17,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const mockMode = true; 
+const mockMode = false; 
 
 app.post('/tailor', async (req, res) => {
   // Destructure isPremium from the request body
@@ -30,29 +30,38 @@ app.post('/tailor', async (req, res) => {
   if (mockMode) {
     console.log("Server: Running in mock mode.");
     return res.json({
-      tailoredResume: `📄 MOCKED (Server): Tailored resume for \"${jobDescription.slice(0, 40)}...\" ✅`,
+      tailoredResume: `📄 MOCKED (Server): Tailored resume for \"${jobDescription.slice(0, 40)}...\" ✅\n\n- Improved efficiency by 25%\n- Reduced costs by 15%`,
     });
   }
 
   try {
     // CONDITIONAL MODEL SELECTION
-    const modelToUse = isPremium ? "gpt-4o" : "gpt-3.5-turbo"; 
-    console.log(`Server: Tailoring with model: ${modelToUse} (isPremium: ${isPremium})`); 
+    const modelToUse = isPremium ? "gpt-4o" : "gpt-3.5-turbo";
+    console.log(`Server: Tailoring with model: ${modelToUse} (isPremium: ${isPremium})`);
 
     const response = await openai.chat.completions.create({
-      model: modelToUse, // MODIFIED: Use the conditionally selected model
+      model: modelToUse,
       messages: [
         {
           role: "system",
-          content: "You are a resume optimization assistant. Tailor the user's resume to the provided job description. Ensure the tailored resume is concise, highlights relevant experience, and uses keywords from the job description naturally.",
+          content: `You are a professional resume optimization assistant. Your task is to tailor a user's resume to a given job description.
+          
+          Guidelines:
+          - Output MUST be in clean Markdown format.
+          - Include ONLY the following sections: SUMMARY, SKILLS, PROFESSIONAL EXPERIENCE, PROJECTS, EDUCATION.
+          - Absolutely DO NOT include any other sections, such as 'ADDITIONAL INFORMATION', 'CONTACT', 'CERTIFICATIONS', or any introductory/concluding conversational text.
+          - Focus on aligning keywords and phrases from the job description with the resume content.
+          - Wherever possible, enhance existing bullet points or create new ones by adding quantifiable metrics and achievements (e.g., "Increased sales by 20%", "Reduced costs by $10K"). Use numbers and percentages from the original resume or infer them if contextually appropriate.
+          - Maintain the overall structure and flow of the original resume as much as possible, only modifying content to match the job description and inject metrics.
+          - Ensure conciseness and impactful language.`,
         },
         {
           role: "user",
-          content: `Here is my resume:\n${resume}\n\nAnd here is the job description:\n${jobDescription}\n\nPlease tailor the resume so it aligns better with the job posting.`,
+          content: `Here is my original resume:\n${resume}\n\nHere is the job description:\n${jobDescription}\n\nProvide the tailored resume in Markdown, strictly following all the guidelines.`,
         },
       ],
-      temperature: 0.7, // Creativity level (0.0-1.0), lower for more focused, higher for more varied
-      max_tokens: 1000, // Max tokens for the response
+      temperature: 0.5, 
+      max_tokens: 1500, 
     });
 
     const tailored = response.choices?.[0]?.message?.content;
@@ -63,7 +72,7 @@ app.post('/tailor', async (req, res) => {
 
     res.json({ tailoredResume: tailored });
   } catch (error) {
-    console.error("Error tailoring resume with OpenAI:", error);
+    console.error("Error tailoring resume with OpenAI:", error); 
     // Provide a more user-friendly error message if it's an OpenAI specific error
     if (error.response && error.response.data && error.response.data.error) {
         res.status(error.response.status || 500).json({ error: `OpenAI API Error: ${error.response.data.error.message}` });
